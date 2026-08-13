@@ -1,0 +1,9 @@
+/.idea
+.DS_Store
+*.DotSettings.user
+
+## .NET build output
+bin/
+obj/
+*.nupkg
+*.trx
