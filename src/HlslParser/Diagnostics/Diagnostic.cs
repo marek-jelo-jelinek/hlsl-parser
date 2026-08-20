@@ -45,6 +45,9 @@ namespace HlslParser.Diagnostics
         public const string MalformedInclude = "HL0116";
         public const string UnknownPreprocessorDirective = "HL0117";
         public const string MalformedTokenPaste = "HL0118";
+        public const string PreprocessorErrorDirective = "HL0119";
+        public const string PreprocessorWarningDirective = "HL0120";
+        public const string MalformedLineDirective = "HL0121";
 
         // Declaration parsing (HL0200–HL0299)
         public const string ExpectedToken = "HL0200";
@@ -96,9 +99,11 @@ namespace HlslParser.Diagnostics
 
         public LinePosition Position => Source?.GetLinePosition(Span.Start) ?? new LinePosition(0, 0);
 
+        public string FileName => Source?.GetFileName(Span.Start) ?? Source?.FileName ?? "<unknown>";
+
         public override string ToString()
         {
-            var file = Source != null ? Source.FileName : "<unknown>";
+            var file = FileName;
             var pos = Position;
             var severity = Severity.ToString().ToLowerInvariant();
             return file + "(" + pos.Line + "," + pos.Column + "): " + severity + " " + Id + ": " + Message;

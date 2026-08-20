@@ -152,7 +152,7 @@ namespace HlslParser.Parsing
             return false;
         }
         
-        public CompilationUnitNode ParseCompilationUnit()
+        public CompilationUnitNode ParseCompilationUnit(IEnumerable<PragmaDirectiveNode> pragmas)
         {
             var start = Current.Span.Start;
             var declarations = new List<HlslNode>();
@@ -163,7 +163,7 @@ namespace HlslParser.Parsing
                 if (_index == before) Advance();
             }
 
-            return new CompilationUnitNode(SpanFrom(start), declarations);
+            return new CompilationUnitNode(SpanFrom(start), declarations, pragmas);
         }
 
         private HlslNode ParseTopLevelDeclaration()

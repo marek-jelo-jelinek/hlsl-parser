@@ -6,13 +6,19 @@ namespace HlslParser.Syntax
     public sealed class CompilationUnitNode : HlslNode
     {
         private readonly IReadOnlyList<HlslNode> _declarations;
+        private readonly IReadOnlyList<PragmaDirectiveNode> _pragmas;
 
-        public CompilationUnitNode(TextSpan span, IEnumerable<HlslNode> declarations) : base(span)
+        public CompilationUnitNode(TextSpan span, IEnumerable<HlslNode> declarations,
+            IEnumerable<PragmaDirectiveNode> pragmas = null) : base(span)
         {
             _declarations = Freeze(declarations);
+            _pragmas = Freeze(pragmas);
         }
 
         public override HlslNodeKind Kind => HlslNodeKind.CompilationUnit;
+
+        /// <summary><c>#pragma</c> directives recognized during preprocessing, in source order.</summary>
+        public IReadOnlyList<PragmaDirectiveNode> Pragmas => _pragmas;
 
         /// <summary>Struct/cbuffer/typedef/global-variable/function declarations, or
         /// <see cref="ErrorNode"/> where a top-level construct couldn't be recognized at all —
@@ -23,6 +29,7 @@ namespace HlslParser.Syntax
         {
             get
             {
+                foreach (var pragma in _pragmas) yield return pragma;
                 foreach (var declaration in _declarations) yield return declaration;
             }
         }

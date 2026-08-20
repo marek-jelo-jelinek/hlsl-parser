@@ -26,6 +26,11 @@ namespace HlslParser.Syntax
             DefaultVisit(node);
         }
 
+        public virtual void VisitPragmaDirective(PragmaDirectiveNode node)
+        {
+            DefaultVisit(node);
+        }
+
         public virtual void VisitTypeName(TypeNameNode node)
         {
             DefaultVisit(node);

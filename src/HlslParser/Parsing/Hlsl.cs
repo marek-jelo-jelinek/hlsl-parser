@@ -39,6 +39,9 @@ namespace HlslParser.Parsing
         /// <summary>Pass-through of <see cref="Preprocessing.Preprocessor.Includes"/>.</summary>
         public IReadOnlyList<IncludeDirective> Includes { get; }
 
+        /// <summary><c>#pragma</c> directives preserved on <see cref="Root"/>.</summary>
+        public IReadOnlyList<PragmaDirectiveNode> Pragmas => Root is CompilationUnitNode unit ? unit.Pragmas : Array.Empty<PragmaDirectiveNode>();
+
         public bool HasErrors
         {
             get
@@ -80,7 +83,7 @@ namespace HlslParser.Parsing
             var processed = preprocessor.Process(tokens);
 
             var parser = new Parser(source, processed, diagnostics);
-            var root = parser.ParseCompilationUnit();
+            var root = parser.ParseCompilationUnit(preprocessor.Pragmas);
 
             return new HlslParseResult(source, root, processed.AsReadOnly(), diagnostics.Diagnostics, preprocessor.Includes);
         }

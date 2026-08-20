@@ -67,6 +67,11 @@ namespace HlslParser.Syntax
             Write(node, "Error: " + node.Message);
         }
 
+        public override void VisitPragmaDirective(PragmaDirectiveNode node)
+        {
+            Write(node, "Pragma " + node.Name + (node.Arguments.Count > 0 ? " " + string.Join(" ", node.Arguments) : ""));
+        }
+
         public override void VisitTypeName(TypeNameNode node)
         {
             Write(node, "TypeName " + node.Name + (node.IsUserType ? " (user)" : ""));

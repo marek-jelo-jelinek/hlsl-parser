@@ -51,6 +51,7 @@ namespace HlslParser.Text
     public sealed class SourceText
     {
         private readonly int[] _lineStarts;
+        private readonly List<LineMappingEntry> _lineMappings = new();
 
         public SourceText(string text, string fileName = null, int baseOffset = 0, int baseLine = 0)
         {
@@ -82,6 +83,36 @@ namespace HlslParser.Text
         /// <summary>Indexes <see cref="Text"/> directly with a LOCAL index (not offset by <see cref="BaseOffset"/>).</summary>
         public char this[int localIndex] => Text[localIndex];
 
+        public void AddLineMapping(int physicalLineIndex, int mappedLine = 0, string mappedFileName = null, bool isDefault = false, bool isHidden = false)
+        {
+            _lineMappings.Add(new LineMappingEntry(physicalLineIndex, mappedLine, mappedFileName, isDefault, isHidden));
+        }
+
+        private LineMappingEntry? FindMapping(int localLineIndex)
+        {
+            if (_lineMappings.Count == 0) return null;
+
+            var low = 0;
+            var high = _lineMappings.Count - 1;
+            var bestIndex = -1;
+
+            while (low <= high)
+            {
+                var mid = low + (high - low) / 2;
+                if (_lineMappings[mid].PhysicalLineIndex <= localLineIndex)
+                {
+                    bestIndex = mid;
+                    low = mid + 1;
+                }
+                else
+                {
+                    high = mid - 1;
+                }
+            }
+
+            return bestIndex >= 0 ? _lineMappings[bestIndex] : (LineMappingEntry?)null;
+        }
+
         private static int[] ComputeLineStarts(string text)
         {
             var starts = new List<int>(Math.Max(8, text.Length / 32)) { 0 };
@@ -110,7 +141,7 @@ namespace HlslParser.Text
             return local;
         }
 
-        private int GetLocalLineIndex(int position)
+        public int GetLocalLineIndex(int position)
         {
             var local = ToLocal(position);
             var index = Array.BinarySearch(_lineStarts, local);
@@ -125,13 +156,34 @@ namespace HlslParser.Text
         }
 
         /// <summary>1-based line and column for an ABSOLUTE offset, in the outer file's line
-        /// numbering.</summary>
+        /// numbering or virtual line mapping.</summary>
         public LinePosition GetLinePosition(int position)
         {
             var localLineIndex = GetLocalLineIndex(position);
             var local = ToLocal(position);
             var column = local - _lineStarts[localLineIndex];
+
+            var mapping = FindMapping(localLineIndex);
+            if (mapping.HasValue && !mapping.Value.IsDefault)
+            {
+                var lineOffset = localLineIndex - mapping.Value.PhysicalLineIndex;
+                return new LinePosition(mapping.Value.MappedLine + lineOffset, column + 1);
+            }
+
             return new LinePosition(localLineIndex + BaseLine + 1, column + 1);
+        }
+
+        /// <summary>Gets the file name for an ABSOLUTE offset, taking into account any #line mappings.</summary>
+        public string GetFileName(int position)
+        {
+            var localLineIndex = GetLocalLineIndex(position);
+            var mapping = FindMapping(localLineIndex);
+            if (mapping.HasValue && !mapping.Value.IsDefault && mapping.Value.MappedFileName != null)
+            {
+                return mapping.Value.MappedFileName;
+            }
+
+            return FileName;
         }
 
         /// <summary>ABSOLUTE offset of the start of the given zero-based line (in the outer file's
@@ -169,5 +221,23 @@ namespace HlslParser.Text
         {
             return FileName;
         }
+    }
+
+    internal readonly struct LineMappingEntry
+    {
+        public LineMappingEntry(int physicalLineIndex, int mappedLine, string mappedFileName, bool isDefault, bool isHidden)
+        {
+            PhysicalLineIndex = physicalLineIndex;
+            MappedLine = mappedLine;
+            MappedFileName = mappedFileName;
+            IsDefault = isDefault;
+            IsHidden = isHidden;
+        }
+
+        public int PhysicalLineIndex { get; }
+        public int MappedLine { get; }
+        public string MappedFileName { get; }
+        public bool IsDefault { get; }
+        public bool IsHidden { get; }
     }
 }

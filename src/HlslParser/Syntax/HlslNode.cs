@@ -14,6 +14,7 @@ namespace HlslParser.Syntax
     {
         CompilationUnit,
         Error,
+        PragmaDirective,
 
         TypeName,
         ArrayRank,

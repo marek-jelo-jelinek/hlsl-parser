@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using HlslParser.Diagnostics;
 using HlslParser.Lexing;
+using HlslParser.Syntax;
 using HlslParser.Text;
 
 namespace HlslParser.Preprocessing
@@ -22,6 +23,8 @@ namespace HlslParser.Preprocessing
         private readonly ConditionalStack _conditionals = new();
         private readonly ConstantExpressionEvaluator _evaluator;
         private readonly List<IncludeDirective> _includes = new();
+        private readonly List<PragmaDirectiveNode> _pragmas = new();
+        private string _currentMappedFileName;
 
         public Preprocessor(SourceText source, DiagnosticSink diagnostics)
         {
@@ -35,11 +38,17 @@ namespace HlslParser.Preprocessing
         /// <see cref="Process"/> call, in source order — never opened, never resolved.</summary>
         public IReadOnlyList<IncludeDirective> Includes => _includes;
 
+        /// <summary><c>#pragma</c> directives recognized during the most recent
+        /// <see cref="Process"/> call, in source order (live branches only).</summary>
+        public IReadOnlyList<PragmaDirectiveNode> Pragmas => _pragmas;
+
         public List<Token> Process(List<Token> tokens)
         {
             if (tokens == null) throw new ArgumentNullException(nameof(tokens));
 
             _includes.Clear();
+            _pragmas.Clear();
+            _currentMappedFileName = null;
             var output = new List<Token>(tokens.Count);
             var index = 0;
 
@@ -114,6 +123,10 @@ namespace HlslParser.Preprocessing
                 case "else": ProcessElse(hashToken); break;
                 case "endif": ProcessEndif(hashToken); break;
                 case "include": ProcessInclude(tokens, bodyStart, lineEnd, hashToken); break;
+                case "pragma": ProcessPragma(tokens, bodyStart, lineEnd, hashToken); break;
+                case "line": ProcessLineDirective(tokens, bodyStart, lineEnd, hashToken); break;
+                case "error": ProcessError(tokens, bodyStart, lineEnd, hashToken); break;
+                case "warning": ProcessWarning(tokens, bodyStart, lineEnd, hashToken); break;
                 default: ProcessUnknownDirective(hashToken, keywordToken); break;
             }
 
@@ -323,6 +336,109 @@ namespace HlslParser.Preprocessing
 
             _diagnostics.Error(DiagnosticIds.MalformedInclude, hashToken.Span,
                 "#include must be followed by a quoted \"path\" or an angle-bracketed <path>.");
+        }
+
+        private void ProcessPragma(List<Token> tokens, int bodyStart, int bodyEnd, Token hashToken)
+        {
+            if (!_conditionals.IsLive) return;
+
+            var directiveSpan = DirectiveSpan(hashToken, tokens, bodyStart, bodyEnd);
+            var line = _source.GetLinePosition(hashToken.Span.Start).Line;
+
+            if (bodyStart >= bodyEnd)
+            {
+                _pragmas.Add(new PragmaDirectiveNode(directiveSpan, line, string.Empty, Array.Empty<string>(), Array.Empty<TextSpan>(),
+                    string.Empty));
+                return;
+            }
+
+            var nameToken = tokens[bodyStart];
+            var name = nameToken.Text;
+            var rawText = _source.GetText(TextSpan.FromBounds(nameToken.Span.Start, directiveSpan.End));
+
+            var arguments = new List<string>();
+            var argumentSpans = new List<TextSpan>();
+            for (var i = bodyStart + 1; i < bodyEnd; i++)
+            {
+                arguments.Add(tokens[i].Text);
+                argumentSpans.Add(tokens[i].Span);
+            }
+
+            _pragmas.Add(new PragmaDirectiveNode(directiveSpan, line, name, arguments, argumentSpans, rawText));
+        }
+
+        private void ProcessLineDirective(List<Token> tokens, int bodyStart, int bodyEnd, Token hashToken)
+        {
+            if (!_conditionals.IsLive) return;
+
+            var targetPhysicalLine = _source.GetLocalLineIndex(hashToken.Span.Start) + 1;
+            if (bodyStart >= bodyEnd)
+            {
+                _diagnostics.Error(DiagnosticIds.MalformedLineDirective, hashToken.Span, "Expected line number, 'default', or 'hidden' after #line.");
+                return;
+            }
+
+            var first = tokens[bodyStart];
+            if (first.Kind is HlslTokenKind.Identifier or HlslTokenKind.Keyword && first.Text == "default")
+            {
+                _currentMappedFileName = null;
+                _source.AddLineMapping(targetPhysicalLine, isDefault: true);
+                return;
+            }
+
+            if (first.Kind is HlslTokenKind.Identifier or HlslTokenKind.Keyword && first.Text == "hidden")
+            {
+                _source.AddLineMapping(targetPhysicalLine, isHidden: true);
+                return;
+            }
+
+            if (first.Kind == HlslTokenKind.IntegerLiteral)
+            {
+                var lineNumber = (int)first.IntegerValue;
+                if (bodyStart + 1 < bodyEnd)
+                {
+                    var second = tokens[bodyStart + 1];
+                    if (second.Kind == HlslTokenKind.StringLiteral)
+                    {
+                        _currentMappedFileName = second.Value;
+                        _source.AddLineMapping(targetPhysicalLine, lineNumber, _currentMappedFileName);
+                        return;
+                    }
+
+                    _diagnostics.Error(DiagnosticIds.MalformedLineDirective, second.Span,
+                        "Expected file name string literal after line number in #line directive.");
+                    return;
+                }
+
+                _source.AddLineMapping(targetPhysicalLine, lineNumber, _currentMappedFileName);
+                return;
+            }
+
+            _diagnostics.Error(DiagnosticIds.MalformedLineDirective, first.Span, "Expected line number, 'default', or 'hidden' after #line.");
+        }
+
+        private void ProcessError(List<Token> tokens, int bodyStart, int bodyEnd, Token hashToken)
+        {
+            if (!_conditionals.IsLive) return;
+
+            var directiveSpan = DirectiveSpan(hashToken, tokens, bodyStart, bodyEnd);
+            var message = bodyStart < bodyEnd
+                ? _source.GetText(TextSpan.FromBounds(tokens[bodyStart].Span.Start, tokens[bodyEnd - 1].Span.End)).Trim()
+                : string.Empty;
+
+            _diagnostics.Error(DiagnosticIds.PreprocessorErrorDirective, directiveSpan, message);
+        }
+
+        private void ProcessWarning(List<Token> tokens, int bodyStart, int bodyEnd, Token hashToken)
+        {
+            if (!_conditionals.IsLive) return;
+
+            var directiveSpan = DirectiveSpan(hashToken, tokens, bodyStart, bodyEnd);
+            var message = bodyStart < bodyEnd
+                ? _source.GetText(TextSpan.FromBounds(tokens[bodyStart].Span.Start, tokens[bodyEnd - 1].Span.End)).Trim()
+                : string.Empty;
+
+            _diagnostics.Warning(DiagnosticIds.PreprocessorWarningDirective, directiveSpan, message);
         }
 
         private void ProcessUnknownDirective(Token hashToken, Token keywordToken)

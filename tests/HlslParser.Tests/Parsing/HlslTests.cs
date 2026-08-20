@@ -126,6 +126,29 @@ namespace HlslParser.Tests.Parsing
         }
         
         [Test]
+        public void ComputeShaderWithPragmasParsesCleanly()
+        {
+            const string code = @"#pragma kernel CSMain
+#pragma multi_compile _ FEATURE_A
+
+[numthreads(8,8,1)]
+void CSMain() {}
+";
+            var result = Hlsl.Parse(code, "compute.hlsl");
+
+            Assert.IsFalse(result.HasErrors);
+            Assert.AreEqual(2, result.Pragmas.Count);
+            Assert.AreEqual("kernel", result.Pragmas[0].Name);
+            Assert.AreEqual("CSMain", result.Pragmas[0].Arguments[0]);
+            Assert.AreEqual("multi_compile", result.Pragmas[1].Name);
+            CollectionAssert.AreEqual(new[] { "_", "FEATURE_A" }, result.Pragmas[1].Arguments);
+
+            var unit = (CompilationUnitNode)result.Root;
+            Assert.AreEqual(1, unit.Declarations.Count);
+            Assert.IsInstanceOf<FunctionDeclarationNode>(unit.Declarations[0]);
+        }
+
+        [Test]
         public void ParseSourceTextThrowsOnNull()
         {
             Assert.Throws<ArgumentNullException>(() => Hlsl.Parse(null));
