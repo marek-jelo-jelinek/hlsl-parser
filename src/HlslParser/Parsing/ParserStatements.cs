@@ -79,10 +79,11 @@ namespace HlslParser.Parsing
             if (typeToken.Kind != HlslTokenKind.Keyword && typeToken.Kind != HlslTokenKind.Identifier) return false;
             offset++;
 
-            // Only a resource-type keyword can legitimately be templated (mirrors ParseTypeName's
-            // own gating) — a bare identifier followed by '<' is a relational comparison
-            // (`a < b`), not the start of `SomeType<T>`; HLSL has no user-defined generics.
-            if (typeToken.Kind == HlslTokenKind.Keyword && HlslKeywords.IsResourceKeyword(typeToken.Text) &&
+            // Resource-type keywords, vector, and matrix can legitimately be templated (mirrors
+            // ParseTypeName's own gating) — a bare identifier followed by '<' is a relational
+            // comparison (`a < b`), not the start of `SomeType<T>`; HLSL has no user-defined generics.
+            if (typeToken.Kind == HlslTokenKind.Keyword &&
+                (HlslKeywords.IsResourceKeyword(typeToken.Text) || typeToken.Text is "vector" or "matrix") &&
                 Peek(offset).Kind == HlslTokenKind.LessThan)
             {
                 var depth = 0;
@@ -90,6 +91,7 @@ namespace HlslParser.Parsing
                 {
                     if (Peek(offset).Kind == HlslTokenKind.LessThan) depth++;
                     else if (Peek(offset).Kind == HlslTokenKind.GreaterThan) depth--;
+                    else if (Peek(offset).Kind == HlslTokenKind.GreaterThanGreaterThan) depth -= 2;
                     offset++;
                 } while (depth > 0 && Peek(offset).Kind != HlslTokenKind.EndOfFile && Peek(offset).Kind != HlslTokenKind.Semicolon);
             }

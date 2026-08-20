@@ -74,6 +74,34 @@ namespace HlslParser.Tests.Parsing
             Assert.AreEqual("x", ((IdentifierExpressionNode)expr.Operand).Name);
         }
 
+        [TestCase("(fixed4)value", new string[0], "fixed4", HlslKeywordCategory.VectorType)]
+        [TestCase("(half3)value", new string[0], "half3", HlslKeywordCategory.VectorType)]
+        [TestCase("(unorm float4)value", new[] { "unorm" }, "float4", HlslKeywordCategory.VectorType)]
+        [TestCase("(snorm half3)value", new[] { "snorm" }, "half3", HlslKeywordCategory.VectorType)]
+        public void CStyleCastWithPrecisionAndModifiersParsesAsCastExpression(string source, string[] expectedModifiers, string expectedTypeName, HlslKeywordCategory expectedCategory)
+        {
+            var expr = (CastExpressionNode)ParseExpression(source, out var result);
+
+            Assert.IsFalse(result.HasErrors);
+            CollectionAssert.AreEqual(expectedModifiers, expr.Modifiers);
+            Assert.AreEqual(expectedTypeName, expr.TargetType.Name);
+            Assert.AreEqual(expectedCategory, expr.TargetType.Category);
+            Assert.AreEqual("value", ((IdentifierExpressionNode)expr.Operand).Name);
+        }
+
+        [Test]
+        public void CStyleCastOnGenericVectorParsesAsCastExpression()
+        {
+            var expr = (CastExpressionNode)ParseExpression("(vector<float, 4>)value", out var result);
+
+            Assert.IsFalse(result.HasErrors);
+            Assert.AreEqual("vector", expr.TargetType.Name);
+            Assert.AreEqual(2, expr.TargetType.TypeArguments.Count);
+            Assert.AreEqual("float", expr.TargetType.TypeArguments[0].Name);
+            Assert.AreEqual("4", expr.TargetType.TypeArguments[1].Name);
+            Assert.AreEqual("value", ((IdentifierExpressionNode)expr.Operand).Name);
+        }
+
         [Test]
         public void ParenthesizedGroupingIsNotMistakenForACast()
         {

@@ -84,20 +84,23 @@ namespace HlslParser.Syntax
         public override void Accept(HlslVisitor visitor) => visitor.VisitParenthesizedExpression(this);
     }
 
-    /// <summary>A C-style cast <c>(Type)operand</c>. Scope limitation: only recognized when the
-    /// parenthesized content is a single built-in type keyword (no template arguments/arrays) —
-    /// disambiguating a cast from a parenthesized expression for a user-defined type name would
-    /// need a symbol table this parser doesn't have.</summary>
+    /// <summary>A C-style cast <c>(Type)operand</c>, optionally preceded by type modifiers e.g. <c>(unorm float4)operand</c>.</summary>
     public sealed class CastExpressionNode : HlslNode
     {
-        public CastExpressionNode(TextSpan span, TypeNameNode targetType, HlslNode operand) : base(span)
+        public CastExpressionNode(TextSpan span, IEnumerable<string> modifiers, TypeNameNode targetType, HlslNode operand) : base(span)
         {
+            Modifiers = Freeze(modifiers);
             TargetType = targetType;
             Operand = operand;
         }
 
+        public CastExpressionNode(TextSpan span, TypeNameNode targetType, HlslNode operand) : this(span, null, targetType, operand)
+        {
+        }
+
         public override HlslNodeKind Kind => HlslNodeKind.CastExpression;
 
+        public IReadOnlyList<string> Modifiers { get; }
         public TypeNameNode TargetType { get; }
         public HlslNode Operand { get; }
 

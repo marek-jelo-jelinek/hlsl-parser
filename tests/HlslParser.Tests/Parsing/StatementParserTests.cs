@@ -76,6 +76,22 @@ namespace HlslParser.Tests.Parsing
             Assert.AreEqual("MyStruct", declaration.Type.Name);
             Assert.AreEqual("s", declaration.Declarators[0].Name);
         }
+
+        [Test]
+        public void GenericVectorAndMatrixLocalDeclarationsParse()
+        {
+            var block = ParseBody("vector<float, 4> v = float4(1, 2, 3, 4); matrix<half, 3, 3> m;", out var result);
+            Assert.IsFalse(result.HasErrors);
+            Assert.AreEqual(2, block.Statements.Count);
+
+            var decl1 = (DeclarationStatementNode)block.Statements[0];
+            Assert.AreEqual("vector", decl1.Type.Name);
+            Assert.AreEqual("v", decl1.Declarators[0].Name);
+
+            var decl2 = (DeclarationStatementNode)block.Statements[1];
+            Assert.AreEqual("matrix", decl2.Type.Name);
+            Assert.AreEqual("m", decl2.Declarators[0].Name);
+        }
         
         [Test]
         public void IfWithoutElseParses()

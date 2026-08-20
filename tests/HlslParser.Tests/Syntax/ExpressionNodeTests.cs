@@ -105,11 +105,23 @@ namespace HlslParser.Tests.Syntax
             var node = new CastExpressionNode(new TextSpan(0, 8), type, operand);
 
             Assert.AreEqual(HlslNodeKind.CastExpression, node.Kind);
+            Assert.AreEqual(0, node.Modifiers.Count);
             CollectionAssert.AreEqual(new HlslNode[] { type, operand }, node.Children.ToList());
 
             var visitor = new RecordingVisitor();
             node.Accept(visitor);
             Assert.AreSame(node, visitor.Visited);
+        }
+
+        [Test]
+        public void CastExposesModifiers()
+        {
+            var type = new TypeNameNode(new TextSpan(0, 5), "float4", HlslKeywordCategory.VectorType, null);
+            var operand = Id("x");
+            var node = new CastExpressionNode(new TextSpan(0, 14), ["unorm"], type, operand);
+
+            CollectionAssert.AreEqual(new[] { "unorm" }, node.Modifiers);
+            CollectionAssert.AreEqual(new HlslNode[] { type, operand }, node.Children.ToList());
         }
 
         [Test]
@@ -194,7 +206,7 @@ namespace HlslParser.Tests.Syntax
             var callee = Id("foo");
             var a = Id("a");
             var b = Id("b");
-            var node = new InvocationExpressionNode(new TextSpan(0, 8), callee, new HlslNode[] { a, b });
+            var node = new InvocationExpressionNode(new TextSpan(0, 8), callee, [a, b]);
 
             CollectionAssert.AreEqual(new HlslNode[] { callee, a, b }, node.Children.ToList());
 

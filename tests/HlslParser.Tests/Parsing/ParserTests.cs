@@ -492,5 +492,150 @@ namespace HlslParser.Tests.Parsing
             var source = new SourceText("float4 x;", "test.hlsl");
             Assert.Throws<ArgumentException>(() => new Parser(source, new List<Token>(), new DiagnosticSink(source)));
         }
+
+        [Test]
+        public void ParsesFixedPrecisionTypesInFunction()
+        {
+            var unit = ParseUnit("fixed4 main(fixed2 uv : TEXCOORD0) : SV_Target { fixed3 c = fixed3(1, 0, 0); return fixed4(c, 1); }", out var result);
+
+            Assert.IsFalse(result.HasErrors);
+            var fn = (FunctionDeclarationNode)unit.Declarations[0];
+            Assert.AreEqual("fixed4", fn.ReturnType.Name);
+            Assert.AreEqual(HlslKeywordCategory.VectorType, fn.ReturnType.Category);
+            var param = (ParameterNode)fn.Parameters[0];
+            Assert.AreEqual("fixed2", param.Type.Name);
+            Assert.AreEqual("uv", param.Name);
+            Assert.AreEqual("TEXCOORD0", param.Semantic.Name);
+        }
+
+        [Test]
+        public void ParsesGeometryShaderWithTriangleInputAndStreamOutput()
+        {
+            var unit = ParseUnit("[maxvertexcount(3)] void GS(triangle VertexIn input[3], inout TriangleStream<VertexOut> outStream) { }", out var result);
+
+            Assert.IsFalse(result.HasErrors);
+            var fn = (FunctionDeclarationNode)unit.Declarations[0];
+            Assert.AreEqual(1, fn.Attributes.Count);
+            Assert.AreEqual("maxvertexcount", fn.Attributes[0].Name);
+
+            var inParam = (ParameterNode)fn.Parameters[0];
+            CollectionAssert.AreEqual(new[] { "triangle" }, inParam.Modifiers);
+            Assert.AreEqual("VertexIn", inParam.Type.Name);
+            Assert.AreEqual("input", inParam.Name);
+            Assert.AreEqual(1, inParam.ArrayRanks.Count);
+            Assert.AreEqual(3, inParam.ArrayRanks[0].ConstantSize);
+
+            var outParam = (ParameterNode)fn.Parameters[1];
+            CollectionAssert.AreEqual(new[] { "inout" }, outParam.Modifiers);
+            Assert.AreEqual("TriangleStream", outParam.Type.Name);
+            Assert.AreEqual(1, outParam.Type.TypeArguments.Count);
+            Assert.AreEqual("VertexOut", outParam.Type.TypeArguments[0].Name);
+            Assert.AreEqual("outStream", outParam.Name);
+        }
+
+        [Test]
+        public void ParsesTessellationInputPatchWithMultiArgumentTemplate()
+        {
+            var unit = ParseUnit("HSConstantDataOutput HSConst(InputPatch<VSOutput, 3> patch) { }", out var result);
+
+            Assert.IsFalse(result.HasErrors);
+            var fn = (FunctionDeclarationNode)unit.Declarations[0];
+            var param = (ParameterNode)fn.Parameters[0];
+            Assert.AreEqual("InputPatch", param.Type.Name);
+            Assert.AreEqual(2, param.Type.TypeArguments.Count);
+            Assert.AreEqual("VSOutput", param.Type.TypeArguments[0].Name);
+            Assert.AreEqual("3", param.Type.TypeArguments[1].Name);
+            Assert.AreEqual("patch", param.Name);
+        }
+
+        [Test]
+        public void ParsesRayTracingGlobalVariableAndLocalQuery()
+        {
+            var unit = ParseUnit(@"
+                RaytracingAccelerationStructure g_AccelStruct : register(t0);
+                void Trace() {
+                    RayQuery<RAY_FLAG_NONE> q;
+                    RayDesc ray;
+                }", out var result);
+
+            Assert.IsFalse(result.HasErrors);
+            var global = (GlobalVariableDeclarationNode)unit.Declarations[0];
+            Assert.AreEqual("RaytracingAccelerationStructure", global.Type.Name);
+            Assert.AreEqual("g_AccelStruct", global.Declarators[0].Name);
+            Assert.AreEqual("t0", global.Declarators[0].RegisterClause.RegisterSlot);
+
+            var fn = (FunctionDeclarationNode)unit.Declarations[1];
+            var body = (BlockStatementNode)fn.Body;
+            var decl1 = (DeclarationStatementNode)body.Statements[0];
+            Assert.AreEqual("RayQuery", decl1.Type.Name);
+            Assert.AreEqual(1, decl1.Type.TypeArguments.Count);
+            Assert.AreEqual("RAY_FLAG_NONE", decl1.Type.TypeArguments[0].Name);
+
+            var decl2 = (DeclarationStatementNode)body.Statements[1];
+            Assert.AreEqual("RayDesc", decl2.Type.Name);
+            Assert.AreEqual(HlslKeywordCategory.ScalarType, decl2.Type.Category);
+        }
+
+        [Test]
+        public void ParsesGenericVectorAndMatrixTypes()
+        {
+            var unit = ParseUnit(@"
+                vector<float, 4> v;
+                matrix<half, 3, 3> m;
+            ", out var result);
+
+            Assert.IsFalse(result.HasErrors);
+            var v = (GlobalVariableDeclarationNode)unit.Declarations[0];
+            Assert.AreEqual("vector", v.Type.Name);
+            Assert.AreEqual(2, v.Type.TypeArguments.Count);
+            Assert.AreEqual("float", v.Type.TypeArguments[0].Name);
+            Assert.AreEqual("4", v.Type.TypeArguments[1].Name);
+
+            var m = (GlobalVariableDeclarationNode)unit.Declarations[1];
+            Assert.AreEqual("matrix", m.Type.Name);
+            Assert.AreEqual(3, m.Type.TypeArguments.Count);
+            Assert.AreEqual("half", m.Type.TypeArguments[0].Name);
+            Assert.AreEqual("3", m.Type.TypeArguments[1].Name);
+            Assert.AreEqual("3", m.Type.TypeArguments[2].Name);
+        }
+
+        [Test]
+        public void ParsesNestedTemplatesWithConsecutiveClosingAngleBrackets()
+        {
+            var unit = ParseUnit("StructuredBuffer<vector<float, 4>> buf;", out var result);
+
+            Assert.IsFalse(result.HasErrors);
+            var global = (GlobalVariableDeclarationNode)unit.Declarations[0];
+            Assert.AreEqual("StructuredBuffer", global.Type.Name);
+            Assert.AreEqual(1, global.Type.TypeArguments.Count);
+            var inner = global.Type.TypeArguments[0];
+            Assert.AreEqual("vector", inner.Name);
+            Assert.AreEqual(2, inner.TypeArguments.Count);
+            Assert.AreEqual("float", inner.TypeArguments[0].Name);
+            Assert.AreEqual("4", inner.TypeArguments[1].Name);
+        }
+
+        [Test]
+        public void ParsesRovsAndSubpassInputsAndExtendedSamplers()
+        {
+            var unit = ParseUnit(@"
+                globallycoherent RasterizerOrderedTexture2D<float4> g_ROV;
+                SubpassInput<float4> g_Subpass;
+                sampler2DMS g_Sampler;
+            ", out var result);
+
+            Assert.IsFalse(result.HasErrors);
+            var rov = (GlobalVariableDeclarationNode)unit.Declarations[0];
+            CollectionAssert.AreEqual(new[] { "globallycoherent" }, rov.Modifiers);
+            Assert.AreEqual("RasterizerOrderedTexture2D", rov.Type.Name);
+            Assert.AreEqual("float4", rov.Type.TypeArguments[0].Name);
+
+            var subpass = (GlobalVariableDeclarationNode)unit.Declarations[1];
+            Assert.AreEqual("SubpassInput", subpass.Type.Name);
+            Assert.AreEqual("float4", subpass.Type.TypeArguments[0].Name);
+
+            var sampler = (GlobalVariableDeclarationNode)unit.Declarations[2];
+            Assert.AreEqual("sampler2DMS", sampler.Type.Name);
+        }
     }
 }

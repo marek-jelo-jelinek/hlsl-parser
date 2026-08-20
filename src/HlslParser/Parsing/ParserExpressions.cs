@@ -326,23 +326,52 @@ namespace HlslParser.Parsing
         }
 
         /// <summary>
-        /// Resolves the classic C parenthesized-expression-vs-cast ambiguity. Scope limitation
-        /// (see <see cref="CastExpressionNode"/>): only recognized for a single built-in type
-        /// keyword with no template arguments — <c>(float)x</c> is a cast, but <c>(MyStruct)x</c>
-        /// parses as a parenthesized identifier followed by a syntax error, since without a
-        /// symbol table this parser can't tell a user type name from an ordinary identifier.
+        /// Resolves the classic C parenthesized-expression-vs-cast ambiguity.
+        /// Recognized for built-in type keywords, optional modifiers.
         /// </summary>
+        private bool LooksLikeCast()
+        {
+            var offset = 0;
+            while (Peek(offset).Kind == HlslTokenKind.Keyword && HlslKeywords.IsModifierKeyword(Peek(offset).Text))
+            {
+                offset++;
+            }
+
+            var typeToken = Peek(offset);
+            if (typeToken.Kind != HlslTokenKind.Keyword || !HlslKeywords.IsTypeKeyword(typeToken.Text))
+            {
+                return false;
+            }
+
+            offset++;
+
+            if ((typeToken.Text is "vector" or "matrix" || HlslKeywords.IsResourceKeyword(typeToken.Text)) &&
+                Peek(offset).Kind == HlslTokenKind.LessThan)
+            {
+                var depth = 0;
+                do
+                {
+                    if (Peek(offset).Kind == HlslTokenKind.LessThan) depth++;
+                    else if (Peek(offset).Kind == HlslTokenKind.GreaterThan) depth--;
+                    else if (Peek(offset).Kind == HlslTokenKind.GreaterThanGreaterThan) depth -= 2;
+                    offset++;
+                } while (depth > 0 && Peek(offset).Kind != HlslTokenKind.EndOfFile && Peek(offset).Kind != HlslTokenKind.Semicolon);
+            }
+
+            return Peek(offset).Kind == HlslTokenKind.CloseParen && CanStartExpression(Peek(offset + 1));
+        }
+
         private HlslNode ParseParenthesizedOrCast(int start)
         {
             Advance();
 
-            if (Current.Kind == HlslTokenKind.Keyword && HlslKeywords.IsTypeKeyword(Current.Text) && Peek(1).Kind == HlslTokenKind.CloseParen &&
-                CanStartExpression(Peek(2)))
+            if (LooksLikeCast())
             {
+                var modifiers = ParseModifierList();
                 var type = ParseTypeName();
                 Expect(HlslTokenKind.CloseParen, "')'");
                 var operand = ParseUnary();
-                return new CastExpressionNode(SpanFrom(start), type, operand);
+                return new CastExpressionNode(SpanFrom(start), modifiers, type, operand);
             }
 
             var inner = ParseExpression();

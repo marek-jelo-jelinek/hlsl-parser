@@ -92,15 +92,19 @@ namespace HlslParser.Lexing
             foreach (var t in new[]
                      {
                          "void", "bool", "int", "uint", "dword", "half", "float", "double",
-                         "min16float", "min10float", "min16int", "min12int", "min16uint", "string"
+                         "min16float", "min10float", "min16int", "min12int", "min16uint", "string",
+                         "fixed", "RayDesc", "BuiltInTriangleIntersectionAttributes"
                      })
             {
                 Add(t, HlslKeywordCategory.ScalarType);
             }
 
+            Add("vector", HlslKeywordCategory.VectorType);
+            Add("matrix", HlslKeywordCategory.MatrixType);
+
             // Systematic vectorN (N=1..4) / matrixRxC (R,C=1..4) spellings - generated, not
-            // handwritten, since there are ~20 spellings per base type across 6 base types.
-            string[] baseTypes = { "float", "int", "uint", "bool", "half", "double" };
+            // handwritten, since there are ~20 spellings per base type across 7 base types.
+            string[] baseTypes = { "float", "int", "uint", "bool", "half", "double", "fixed" };
             foreach (var b in baseTypes)
             {
                 for (var n = 1; n <= 4; n++)
@@ -126,8 +130,23 @@ namespace HlslParser.Lexing
                          "AppendStructuredBuffer", "ConsumeStructuredBuffer",
                          "ByteAddressBuffer", "RWByteAddressBuffer", "ConstantBuffer",
                          "SamplerState", "SamplerComparisonState",
+                         // Geometry shader stream types
+                         "PointStream", "LineStream", "TriangleStream",
+                         // Hull & Domain tessellation patch types
+                         "InputPatch", "OutputPatch",
+                         // Ray tracing resource types
+                         "RaytracingAccelerationStructure", "RayQuery",
+                         // Rasterizer-Ordered Views (ROVs)
+                         "RasterizerOrderedTexture1D", "RasterizerOrderedTexture1DArray",
+                         "RasterizerOrderedTexture2D", "RasterizerOrderedTexture2DArray", "RasterizerOrderedTexture3D",
+                         "RasterizerOrderedBuffer", "RasterizerOrderedStructuredBuffer", "RasterizerOrderedByteAddressBuffer",
+                         // Subpass
+                         "SubpassInput", "SubpassInputMS", 
+                         // Feedback types
+                         "FeedbackTexture2D", "FeedbackTexture2DArray",
                          // Cg-legacy spellings — plain superset, no dialect gating.
-                         "sampler", "sampler1D", "sampler2D", "sampler3D", "samplerCUBE", "sampler_state"
+                         "sampler", "sampler1D", "sampler2D", "sampler3D", "samplerCUBE", "sampler_state",
+                         "sampler2DMS", "sampler2DArray", "samplerCUBEMArray", "samplerRECT", "sampler2D_float", "sampler2D_half"
                      })
                 Add(t, HlslKeywordCategory.ResourceType);
 
@@ -145,7 +164,8 @@ namespace HlslParser.Lexing
                      {
                          "static", "const", "uniform", "extern", "shared", "groupshared", "volatile",
                          "inline", "in", "out", "inout", "precise", "row_major", "column_major",
-                         "centroid", "linear", "noperspective", "nointerpolation", "sample", "noinline"
+                         "centroid", "linear", "noperspective", "nointerpolation", "sample", "noinline",
+                         "unorm", "snorm", "globallycoherent", "point", "line", "triangle", "lineadj", "triangleadj"
                      })
                 Add(t, HlslKeywordCategory.Modifier);
 

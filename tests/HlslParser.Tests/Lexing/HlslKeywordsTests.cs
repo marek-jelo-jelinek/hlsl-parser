@@ -9,7 +9,7 @@ namespace HlslParser.Tests.Lexing
     {
         private static IEnumerable<string> VectorAndMatrixKeywords()
         {
-            string[] baseTypes = { "float", "int", "uint", "bool", "half", "double" };
+            string[] baseTypes = { "float", "int", "uint", "bool", "half", "double", "fixed" };
             foreach (var b in baseTypes)
             {
                 for (var n = 1; n <= 4; n++) yield return b + n;
@@ -23,6 +23,15 @@ namespace HlslParser.Tests.Lexing
         {
             Assert.IsTrue(HlslKeywords.IsKeyword(text), text + " should be a keyword");
             Assert.IsTrue(HlslKeywords.IsTypeKeyword(text), text + " should be a type keyword");
+        }
+
+        [TestCase("vector", HlslKeywordCategory.VectorType)]
+        [TestCase("matrix", HlslKeywordCategory.MatrixType)]
+        public void GenericVectorAndMatrixKeywordsAreRecognized(string text, HlslKeywordCategory expectedCategory)
+        {
+            Assert.IsTrue(HlslKeywords.IsKeyword(text));
+            Assert.IsTrue(HlslKeywords.IsTypeKeyword(text));
+            Assert.AreEqual(expectedCategory, HlslKeywords.GetCategory(text));
         }
 
         [TestCase("void")]
@@ -39,6 +48,9 @@ namespace HlslParser.Tests.Lexing
         [TestCase("min12int")]
         [TestCase("min16uint")]
         [TestCase("string")]
+        [TestCase("fixed")]
+        [TestCase("RayDesc")]
+        [TestCase("BuiltInTriangleIntersectionAttributes")]
         public void ScalarTypesAreTypeKeywords(string text)
         {
             Assert.IsTrue(HlslKeywords.IsTypeKeyword(text));
@@ -56,6 +68,29 @@ namespace HlslParser.Tests.Lexing
         [TestCase("SamplerComparisonState")]
         [TestCase("sampler2D")] // Cg legacy
         [TestCase("sampler_state")] // Cg legacy
+        [TestCase("sampler2DMS")]
+        [TestCase("sampler2DArray")]
+        [TestCase("samplerCUBEMArray")]
+        [TestCase("samplerRECT")]
+        [TestCase("sampler2D_float")]
+        [TestCase("sampler2D_half")]
+        [TestCase("PointStream")]
+        [TestCase("LineStream")]
+        [TestCase("TriangleStream")]
+        [TestCase("InputPatch")]
+        [TestCase("OutputPatch")]
+        [TestCase("RaytracingAccelerationStructure")]
+        [TestCase("RayQuery")]
+        [TestCase("RasterizerOrderedTexture1D")]
+        [TestCase("RasterizerOrderedTexture2D")]
+        [TestCase("RasterizerOrderedTexture3D")]
+        [TestCase("RasterizerOrderedBuffer")]
+        [TestCase("RasterizerOrderedStructuredBuffer")]
+        [TestCase("RasterizerOrderedByteAddressBuffer")]
+        [TestCase("SubpassInput")]
+        [TestCase("SubpassInputMS")]
+        [TestCase("FeedbackTexture2D")]
+        [TestCase("FeedbackTexture2DArray")]
         public void ResourceTypesAreResourceKeywords(string text)
         {
             Assert.IsTrue(HlslKeywords.IsResourceKeyword(text));
@@ -96,6 +131,14 @@ namespace HlslParser.Tests.Lexing
         [TestCase("inout")]
         [TestCase("row_major")]
         [TestCase("nointerpolation")]
+        [TestCase("unorm")]
+        [TestCase("snorm")]
+        [TestCase("globallycoherent")]
+        [TestCase("point")]
+        [TestCase("line")]
+        [TestCase("triangle")]
+        [TestCase("lineadj")]
+        [TestCase("triangleadj")]
         public void ModifierKeywordsAreRecognized(string text)
         {
             Assert.IsTrue(HlslKeywords.IsModifierKeyword(text));

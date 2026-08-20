@@ -10,7 +10,7 @@ namespace HlslParser.Syntax
     /// </summary>
     public sealed class HlslTreeDumper : HlslVisitor
     {
-        private readonly StringBuilder _builder = new StringBuilder();
+        private readonly StringBuilder _builder = new();
         private readonly SourceText _source;
         private int _depth;
 
@@ -269,7 +269,7 @@ namespace HlslParser.Syntax
 
         public override void VisitCastExpression(CastExpressionNode node)
         {
-            Write(node, "Cast");
+            Write(node, "Cast" + FormatModifiers(node.Modifiers));
             Descend(node);
         }
 
