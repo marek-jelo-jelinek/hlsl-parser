@@ -240,5 +240,10 @@ namespace HlslParser.Syntax
         {
             DefaultVisit(node);
         }
+
+        public virtual void VisitInitializerListExpression(InitializerListExpressionNode node)
+        {
+            DefaultVisit(node);
+        }
     }
 }

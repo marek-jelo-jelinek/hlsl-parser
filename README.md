@@ -9,7 +9,8 @@ immutable, strongly-typed AST for static analysis and diagnostics tooling.
 
 - **Zero dependencies**: no runtime dependencies at all.
 - **Standalone and embeddable**: parses a whole `.hlsl`/`.cginc`/`.compute` file directly, or a substring embedded inside a document.
-- **Full HLSL/Cg grammar**: structs, buffers, resources, functions and full statement/expression parsing inside function bodies.
+- **Full HLSL/Cg grammar**: structs, buffers, resources, functions and full statement/expression parsing inside function bodies, including
+  brace-initializer lists (`float3 v = {1, 2, 3};`, with nesting for matrix/array/struct initializers).
 - **Real preprocessor**: genuine `#define`/`#undef` macro expansion and `#if`/`#ifdef`/`#ifndef`/`#elif`/`#else`/`#endif` conditional evaluation,
   since both are self-contained within a single file's text.
 - **Best-effort recovery**: never throws on malformed source; it returns a (possibly partial) tree plus a full diagnostics list. That

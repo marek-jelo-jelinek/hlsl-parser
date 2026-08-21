@@ -67,7 +67,8 @@ namespace HlslParser.Syntax
         AssignmentExpression,
         InvocationExpression,
         ElementAccessExpression,
-        MemberAccessExpression
+        MemberAccessExpression,
+        InitializerListExpression
     }
 
     /// <summary>

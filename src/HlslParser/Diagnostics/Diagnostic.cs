@@ -68,7 +68,8 @@ namespace HlslParser.Diagnostics
         public const string MalformedArrayRank = "HL0215";
         public const string MissingTypeName = "HL0216";
         public const string UnexpectedEndOfFile = "HL0217";
-        // HL0218–HL0299 reserved for the statement/expression-parser phase spillover.
+        public const string MalformedInitializerList = "HL0218";
+        // HL0219–HL0299 reserved for the statement/expression-parser phase spillover.
 
         // Statement/expression parsing (HL0300–HL0399)
         public const string ExpectedExpression = "HL0300";

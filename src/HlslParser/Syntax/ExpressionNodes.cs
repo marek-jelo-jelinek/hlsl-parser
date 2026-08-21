@@ -264,6 +264,30 @@ namespace HlslParser.Syntax
         public override void Accept(HlslVisitor visitor) => visitor.VisitInvocationExpression(this);
     }
 
+    /// <summary>A brace-initializer list: <c>{ expr, expr, ... }</c>. Each element may itself be an <see cref="InitializerListExpressionNode"/> for
+    /// nested aggregate initializers or an array-of-struct initializer.</summary>
+    public sealed class InitializerListExpressionNode : HlslNode
+    {
+        public InitializerListExpressionNode(TextSpan span, IEnumerable<HlslNode> elements) : base(span)
+        {
+            Elements = Freeze(elements);
+        }
+
+        public override HlslNodeKind Kind => HlslNodeKind.InitializerListExpression;
+
+        public IReadOnlyList<HlslNode> Elements { get; }
+
+        public override IEnumerable<HlslNode> Children
+        {
+            get
+            {
+                foreach (var element in Elements) yield return element;
+            }
+        }
+
+        public override void Accept(HlslVisitor visitor) => visitor.VisitInitializerListExpression(this);
+    }
+
     /// <summary>An index: <c>target[index]</c>.</summary>
     public sealed class ElementAccessExpressionNode : HlslNode
     {

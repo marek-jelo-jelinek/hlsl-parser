@@ -307,14 +307,42 @@ namespace HlslParser.Parsing
         /// No terminator tracking needed: an expression production never itself consumes a bare
         /// top-level <c>,</c> or <c>;</c> (call/index argument lists are scoped by their own
         /// brackets), so parsing naturally stops where the declarator/parameter-list terminator
-        /// begins.</summary>
+        /// begins. A leading <c>{</c> instead starts a brace/aggregate initializer list (e.g.
+        /// <c>static const float2 offsets[4] = { float2(0,0), ... };</c>) rather than an ordinary
+        /// expression.</summary>
         private InitializerNode TryParseInitializerExpression()
         {
             if (!Match(HlslTokenKind.Equals)) return null;
 
             var start = Current.Span.Start;
-            var expression = ParseAssignment();
+            var expression = Current.Kind == HlslTokenKind.OpenBrace ? ParseInitializerList() : ParseAssignment();
             return new InitializerNode(SpanFrom(start), expression);
+        }
+
+        /// <summary>A <c>{ expr, expr, ... }</c> brace initializer list. Each element may itself be
+        /// a nested <see cref="InitializerListExpressionNode"/> (e.g. <c>float2x2 m = {{1,0},{0,1}};</c>
+        /// or an array-of-struct initializer) — mirrors the comma-list/stuck-cursor-guard pattern
+        /// used by <see cref="ParserExpressions.ParseInvocation"/>'s argument list.</summary>
+        private HlslNode ParseInitializerList()
+        {
+            var start = Current.Span.Start;
+            Advance(); // '{'
+
+            var elements = new List<HlslNode>();
+            if (Current.Kind != HlslTokenKind.CloseBrace)
+            {
+                while (true)
+                {
+                    var before = _index;
+                    elements.Add(Current.Kind == HlslTokenKind.OpenBrace ? ParseInitializerList() : ParseAssignment());
+                    if (!Match(HlslTokenKind.Comma)) break;
+                    if (Current.Kind == HlslTokenKind.CloseBrace) break; // trailing comma, e.g. {1,2,3,}
+                    if (_index == before) Advance();
+                }
+            }
+
+            Expect(HlslTokenKind.CloseBrace, "'}'", DiagnosticIds.MalformedInitializerList);
+            return new InitializerListExpressionNode(SpanFrom(start), elements);
         }
     }
 }

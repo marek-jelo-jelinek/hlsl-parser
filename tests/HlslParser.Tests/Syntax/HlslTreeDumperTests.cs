@@ -172,5 +172,18 @@ struct Broken
             Assert.IsTrue(structDecl.Fields.OfType<ErrorNode>().Any());
             Assert.IsTrue(result.HasErrors);
         }
+
+        [Test]
+        public void DumpsInitializerListWithElementCountAndNesting()
+        {
+            var result = Hlsl.Parse("float2x2 m = {{1,0},{0,1}};", "test.hlsl");
+            Assert.IsFalse(result.HasErrors);
+            var dump = HlslTreeDumper.Dump(result.Root, result.Source);
+
+            StringAssert.Contains("InitializerList (2)", dump);
+            // Nested rows are themselves InitializerList (2) entries, one indent level deeper.
+            var occurrences = dump.Split(new[] { "InitializerList (2)" }, System.StringSplitOptions.None).Length - 1;
+            Assert.AreEqual(3, occurrences); // outer + two nested rows
+        }
     }
 }

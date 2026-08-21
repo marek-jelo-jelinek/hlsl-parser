@@ -314,5 +314,11 @@ namespace HlslParser.Syntax
             Write(node, "MemberAccess ." + node.MemberName);
             Descend(node);
         }
+
+        public override void VisitInitializerListExpression(InitializerListExpressionNode node)
+        {
+            Write(node, "InitializerList (" + node.Elements.Count + ")");
+            Descend(node);
+        }
     }
 }

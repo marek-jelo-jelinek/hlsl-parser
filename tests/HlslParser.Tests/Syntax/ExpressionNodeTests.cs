@@ -27,6 +27,7 @@ namespace HlslParser.Tests.Syntax
             public override void VisitInvocationExpression(InvocationExpressionNode node) => Visited = node;
             public override void VisitElementAccessExpression(ElementAccessExpressionNode node) => Visited = node;
             public override void VisitMemberAccessExpression(MemberAccessExpressionNode node) => Visited = node;
+            public override void VisitInitializerListExpression(InitializerListExpressionNode node) => Visited = node;
         }
 
         [Test]
@@ -250,6 +251,37 @@ namespace HlslParser.Tests.Syntax
             var visitor = new RecordingVisitor();
             node.Accept(visitor);
             Assert.AreSame(node, visitor.Visited);
+        }
+
+        [Test]
+        public void InitializerListWithNoElementsHasEmptyChildren()
+        {
+            var node = new InitializerListExpressionNode(new TextSpan(0, 2), null);
+            Assert.AreEqual(HlslNodeKind.InitializerListExpression, node.Kind);
+            Assert.AreEqual(0, node.Elements.Count);
+            CollectionAssert.IsEmpty(node.Children.ToList());
+        }
+
+        [Test]
+        public void InitializerListChildrenAreElementsInOrderAndAccepts()
+        {
+            var a = Id("a");
+            var b = Id("b");
+            var node = new InitializerListExpressionNode(new TextSpan(0, 5), [a, b]);
+            Assert.AreEqual(2, node.Elements.Count);
+            CollectionAssert.AreEqual(new HlslNode[] { a, b }, node.Children.ToList());
+
+            var visitor = new RecordingVisitor();
+            node.Accept(visitor);
+            Assert.AreSame(node, visitor.Visited);
+        }
+
+        [Test]
+        public void InitializerListSupportsNestedInitializerListsAsElements()
+        {
+            var inner = new InitializerListExpressionNode(new TextSpan(0, 2), [Id("a")]);
+            var outer = new InitializerListExpressionNode(new TextSpan(0, 4), [inner]);
+            CollectionAssert.AreEqual(new HlslNode[] { inner }, outer.Children.ToList());
         }
     }
 }
