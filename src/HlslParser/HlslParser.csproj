@@ -18,6 +18,9 @@
         <Copyright>Copyright (c) 2026 Marek Jelínek</Copyright>
         <PackageTags>hlsl;cg;unity;shader;parser;lexer;ast</PackageTags>
         <GenerateDocumentationFile>false</GenerateDocumentationFile>
+        <PackageOutputPath>$(MSBuildThisFileDirectory)../../artifacts/</PackageOutputPath>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
     <ItemGroup>
         <None Include="../../LICENSE" Pack="true" PackagePath=""/>
