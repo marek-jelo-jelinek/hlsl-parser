@@ -34,11 +34,11 @@ jobs:
       - name: Verify tag matches csproj version
         run: |
           TAG_VERSION="${RELEASE_TAG#v}"
-          CSPROJ_VERSION=$(grep -m1 -oE '<Version>[^<]+</Version>' src/HlslParser/HlslParser.csproj | sed -E 's/<Version>(.*)<\/Version>/\1/')
+          CSPROJ_VERSION=$(grep -m1 -oE '<Version>[^<]+</Version>' src/Tesearis.HlslParser/Tesearis.HlslParser.csproj | sed -E 's/<Version>(.*)<\/Version>/\1/')
           echo "Tag version:    $TAG_VERSION"
           echo "csproj version: $CSPROJ_VERSION"
           if [ "$TAG_VERSION" != "$CSPROJ_VERSION" ]; then
-            echo "::error::Tag v$TAG_VERSION does not match <Version>$CSPROJ_VERSION</Version> in HlslParser.csproj"
+            echo "::error::Tag v$TAG_VERSION does not match <Version>$CSPROJ_VERSION</Version> in Tesearis.HlslParser.csproj"
             exit 1
           fi
 
@@ -50,26 +50,26 @@ jobs:
             9.0.x
 
       - name: Restore
-        run: dotnet restore HlslParser.slnx
+        run: dotnet restore Tesearis.HlslParser.slnx
 
       - name: Build (Release)
-        run: dotnet build HlslParser.slnx -c Release --no-restore
+        run: dotnet build Tesearis.HlslParser.slnx -c Release --no-restore
 
       - name: Test (Release)
-        run: dotnet test HlslParser.slnx -c Release --no-build --verbosity normal
+        run: dotnet test Tesearis.HlslParser.slnx -c Release --no-build --verbosity normal
 
       - name: Pack
-        run: dotnet pack src/HlslParser/HlslParser.csproj -c Release -o artifacts
+        run: dotnet pack src/Tesearis.HlslParser/Tesearis.HlslParser.csproj -c Release -o artifacts
 
       - name: Package raw binaries
         run: |
           VERSION="${RELEASE_TAG#v}"
           STAGE="artifacts/binaries-stage"
           mkdir -p "$STAGE/netstandard2.0" "$STAGE/net8.0"
-          cp src/HlslParser/bin/Release/netstandard2.0/HlslParser.dll src/HlslParser/bin/Release/netstandard2.0/HlslParser.pdb "$STAGE/netstandard2.0/"
-          cp src/HlslParser/bin/Release/net8.0/HlslParser.dll src/HlslParser/bin/Release/net8.0/HlslParser.pdb "$STAGE/net8.0/"
+          cp src/Tesearis.HlslParser/bin/Release/netstandard2.0/Tesearis.HlslParser.dll src/Tesearis.HlslParser/bin/Release/netstandard2.0/Tesearis.HlslParser.pdb "$STAGE/netstandard2.0/"
+          cp src/Tesearis.HlslParser/bin/Release/net8.0/Tesearis.HlslParser.dll src/Tesearis.HlslParser/bin/Release/net8.0/Tesearis.HlslParser.pdb "$STAGE/net8.0/"
           cp LICENSE README.md "$STAGE/"
-          (cd "$STAGE" && zip -r "../HlslParser-v${VERSION}-binaries.zip" .)
+          (cd "$STAGE" && zip -r "../Tesearis.HlslParser-v${VERSION}-binaries.zip" .)
 
       - name: Extract changelog section
         run: |

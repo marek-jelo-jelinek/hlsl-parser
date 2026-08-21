@@ -7,6 +7,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed the package/namespace from `HlslParser` to `Tesearis.HlslParser`.
+
 ## [1.0.0] - 2026-08-21
 
 ### Added

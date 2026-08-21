@@ -1,8 +1,8 @@
-# HlslParser
+# Tesearis.HlslParser
 
 Standalone HLSL/Cg lexer, preprocessor and syntax tree for shader source.
 
-`HlslParser` parses HLSL/Cg source, either a whole standalone file (`.hlsl`, `.cginc`,`.compute`) or a region embedded inside a document, into an
+`Tesearis.HlslParser` parses HLSL/Cg source, either a whole standalone file (`.hlsl`, `.cginc`,`.compute`) or a region embedded inside a document, into an
 immutable, strongly-typed AST for static analysis and diagnostics tooling.
 
 ## Features
@@ -28,8 +28,8 @@ immutable, strongly-typed AST for static analysis and diagnostics tooling.
 ### Parsing a standalone file
 
 ```csharp
-using HlslParser.Parsing;
-using HlslParser.Syntax;
+using Tesearis.HlslParser.Parsing;
+using Tesearis.HlslParser.Syntax;
 
 HlslParseResult result = Hlsl.Parse(sourceText, "shader.hlsl");
 
@@ -100,7 +100,7 @@ string dump = HlslTreeDumper.Dump(result.Root, result.Source);
 ### Diagnostics
 
 ```csharp
-using HlslParser.Diagnostics;
+using Tesearis.HlslParser.Diagnostics;
 
 foreach (Diagnostic diagnostic in result.Diagnostics)
 {
@@ -112,8 +112,8 @@ foreach (Diagnostic diagnostic in result.Diagnostics)
 ## Building & testing
 
 ```
-dotnet build HlslParser.slnx
-dotnet test HlslParser.slnx
+dotnet build Tesearis.HlslParser.slnx
+dotnet test Tesearis.HlslParser.slnx
 ```
 
 ## License

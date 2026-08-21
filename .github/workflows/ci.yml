@@ -25,10 +25,10 @@ jobs:
             9.0.x
 
       - name: Restore
-        run: dotnet restore HlslParser.slnx
+        run: dotnet restore Tesearis.HlslParser.slnx
 
       - name: Build (Release)
-        run: dotnet build HlslParser.slnx -c Release --no-restore
+        run: dotnet build Tesearis.HlslParser.slnx -c Release --no-restore
 
       - name: Test (Release)
-        run: dotnet test HlslParser.slnx -c Release --no-build --verbosity normal
+        run: dotnet test Tesearis.HlslParser.slnx -c Release --no-build --verbosity normal

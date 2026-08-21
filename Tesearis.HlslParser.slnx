@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Tesearis.HlslParser/Tesearis.HlslParser.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Tesearis.HlslParser.Tests/Tesearis.HlslParser.Tests.csproj" />
+  </Folder>
+</Solution>
